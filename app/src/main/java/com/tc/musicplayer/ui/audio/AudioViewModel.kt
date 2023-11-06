@@ -12,7 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.tc.musicplayer.data.local.model.Audio
 import com.tc.musicplayer.data.repository.AudioRepository
 import com.tc.musicplayer.player.service.AudioServiceHandler
-import com.tc.musicplayer.player.service.JetAudioState
+import com.tc.musicplayer.player.service.AudioState
 import com.tc.musicplayer.player.service.PlayerEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +39,7 @@ class AudioViewModel @Inject constructor(
     var currentSelectedAudio by savedStateHandle.saveable { mutableStateOf(audioDummy) }
     var audioList by savedStateHandle.saveable { mutableStateOf(listOf<Audio>()) }
 
-    private val _uiState: MutableStateFlow<UIState> = MutableStateFlow(UIState.Initial)
+    private val _uiState: MutableStateFlow<UIState> = MutableStateFlow(UIState.Loading)
     val uiState: StateFlow<UIState> = _uiState.asStateFlow()
 
     init {
@@ -50,15 +50,15 @@ class AudioViewModel @Inject constructor(
         viewModelScope.launch {
             audioServiceHandler.audioState.collectLatest { mediaState ->
                 when (mediaState) {
-                    JetAudioState.Initial -> _uiState.value = UIState.Initial
-                    is JetAudioState.Buffering -> calculateProgressValue(mediaState.progress)
-                    is JetAudioState.Playing -> isPlaying = mediaState.isPlaying
-                    is JetAudioState.Progress -> calculateProgressValue(mediaState.progress)
-                    is JetAudioState.CurrentPlaying -> {
+                    AudioState.Loading -> _uiState.value = UIState.Loading
+                    is AudioState.Buffering -> calculateProgressValue(mediaState.progress)
+                    is AudioState.Playing -> isPlaying = mediaState.isPlaying
+                    is AudioState.Progress -> calculateProgressValue(mediaState.progress)
+                    is AudioState.CurrentPlaying -> {
                         currentSelectedAudio = audioList[mediaState.mediaItemIndex]
                     }
 
-                    is JetAudioState.Ready -> {
+                    is AudioState.Ready -> {
                         duration = mediaState.duration
                         _uiState.value = UIState.Ready
                     }
@@ -165,7 +165,7 @@ sealed class UIEvents {
 }
 
 sealed class UIState {
-    object Initial : UIState()
+    object Loading : UIState()
     object Ready : UIState()
 }
 
